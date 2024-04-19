@@ -13,6 +13,10 @@ textarea {
     max-width: 280px;
 }
 
+.mysuccess {
+    color: #5cb85c
+}
+
 /* Responsive: Portrait tablets and up */
 @media screen and (min-width: 768px) {
     .body-content {

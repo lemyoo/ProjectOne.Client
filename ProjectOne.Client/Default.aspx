@@ -1,25 +1,85 @@
-﻿<%@ Page Title="Home Page" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="ProjectOne.Client._Default" %>
+﻿<%@ Page Title="Upload Excel" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="ProjectOne.Client.Default" Async="true" %>
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
-    <script src="Scripts/jquery-3.4.1.min.js"></script>
-    <script type="text/javascript">  
-        function getDummyData() {
-            $.ajax({
-                type: "GET",
-                url: "https://localhost:7056/api/ExcelFile/GetData",
+    <div class="form-group">
+        <label class="form-label">Upload File</label>
+        <asp:FileUpload CssClass="form-control" ID="ExcelFile" runat="server" name="formFile" accept=".xlsx, .xls ,.csv" />
+        <!--<asp:RequiredFieldValidator runat="server" ID="rfvFile" ControlToValidate="ExcelFile" ErrorMessage="Field is required" Display="Dynamic" />-->
+    </div>
+    <p>
+        <asp:Button Text="UploadFile" runat="server" CssClass="btn btn-primary" OnClick="UploadBtn_Click" />
+    </p>
+    <asp:Table runat="server" ID="DataTableExcel" CssClass="table">
+        <asp:TableHeaderRow>
+            <asp:TableHeaderCell>#</asp:TableHeaderCell>
+            <asp:TableHeaderCell>TicketCode</asp:TableHeaderCell>
+            <asp:TableHeaderCell>Time generated</asp:TableHeaderCell>
+            <asp:TableHeaderCell>Type</asp:TableHeaderCell>
+            <asp:TableHeaderCell>Duplicate(In File)</asp:TableHeaderCell>
+            <asp:TableHeaderCell>Duplicate(In DB)</asp:TableHeaderCell>
+            <asp:TableHeaderCell>Delete</asp:TableHeaderCell>
+        </asp:TableHeaderRow>
+    </asp:Table>
+    <asp:Button runat="server" Text="Submit Data" CssClass="btn btn-success" Enabled="false" ID="SubmitBtn" Type="button" />
+    <asp:Literal ID="ltTxt" runat="server" />
+    <script type="text/javascript">
+        function removeARow(id) {
+            id.parentElement.removeChild(id);
 
-                success: function (result) {
-                    console.log(result);
-                },
-                error: function (req, status, error) {
-                    console.log("meee" + status);
+            let table = document.getElementById("MainContent_DataTableExcel")
+
+
+            for (var i = 1, row; row = table.rows[i]; i++) {
+
+                if (row.cells[4].innerText === "True" || row.cells[5].innerText === "True") {
+                    document.getElementById("MainContent_SubmitBtn").disabled = true;
+                    return;
+                } else {
+                    document.getElementById("MainContent_SubmitBtn").disabled = false;
                 }
-            })
-        }
-        $(document).ready(getDummyData);
-    </script>
-    
-        <asp:Button ID="upload" runat="server" Text="Upload" OnClick="Submit_Click"/>
-    
 
+            }
+        }
+
+        async function sendData() {
+            event.preventDefault();
+
+            var table = document.getElementById("MainContent_DataTableExcel");
+            var list = [];
+            for (var i = 1, row; row = table.rows[i]; i++) {
+                var data = {};
+
+                data.ticketCode = row.cells[1].innerText;
+                data.dateCreated = new Date(row.cells[2].innerText);
+                data.ticketType = row.cells[3].innerText;
+                data.duplicateFromExcelSheet = row.cells[4].innerText === "False" ? false : true;
+                data.duplicateFromDb = row.cells[5].innerText === "False" ? false : true;
+
+                list.push(data);
+
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            await fetch("https://localhost:7056/api/excelfile/uploaddata",
+                {
+                    method: "POST",
+                    headers: myHeaders,
+                    body: JSON.stringify(list),
+                    redirect: "follow"
+                })
+                .then((response) => response.text())
+                .then((result) => {
+
+                    console.log("the result " + result);
+                    alert(result)
+
+                })
+                .catch((error) => {
+                    console.error(error)
+                    document.getElementById("MainContent_ltTxt").innerText = "There has been an issue"
+                })
+
+        }
+    </script>
 </asp:Content>
